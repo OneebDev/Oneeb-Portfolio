@@ -146,9 +146,86 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const contactForm = document.getElementById('contact-form');
+    const submitBtn = contactForm?.querySelector('button[type="submit"]');
+    
     if (contactForm) {
+        // Add real-time validation
+        const inputs = contactForm.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('blur', () => validateField(input));
+            input.addEventListener('input', () => {
+                if (input.classList.contains('error')) {
+                    validateField(input);
+                }
+            });
+        });
+
+        function validateField(field) {
+            const value = field.value.trim();
+            let isValid = true;
+            let errorMessage = '';
+
+            // Remove existing error styling
+            field.classList.remove('error');
+            const existingError = field.parentNode.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            if (field.hasAttribute('required') && !value) {
+                isValid = false;
+                errorMessage = 'This field is required';
+            } else if (field.type === 'email' && value && !isValidEmail(value)) {
+                isValid = false;
+                errorMessage = 'Please enter a valid email address';
+            } else if (field.name === 'name' && value && value.length < 2) {
+                isValid = false;
+                errorMessage = 'Name must be at least 2 characters';
+            } else if (field.name === 'message' && value && value.length < 10) {
+                isValid = false;
+                errorMessage = 'Message must be at least 10 characters';
+            }
+
+            if (!isValid) {
+                field.classList.add('error');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = errorMessage;
+                field.parentNode.appendChild(errorDiv);
+            }
+
+            return isValid;
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validateForm() {
+            const inputs = contactForm.querySelectorAll('input, textarea');
+            let isValid = true;
+            inputs.forEach(input => {
+                if (!validateField(input)) {
+                    isValid = false;
+                }
+            });
+            return isValid;
+        }
+
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            if (!validateForm()) {
+                // Show a more user-friendly error message
+                showNotification('Please correct the errors in the form before submitting.', 'error');
+                return;
+            }
+
+            // Disable submit button and show loading state
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
+            }
 
             const formData = new FormData(contactForm);
             const payload = {
@@ -157,11 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 subject: formData.get('subject')?.trim(),
                 message: formData.get('message')?.trim(),
             };
-
-            if (!payload.name || !payload.email || !payload.subject || !payload.message) {
-                alert('Please fill in all required fields before sending your message.');
-                return;
-            }
 
             try {
                 const res = await fetch('/api/send-contact-email', {
@@ -175,16 +247,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok || !data.success) {
-                    alert('Sorry, something went wrong while sending your message. Please try again in a moment or email me directly at oneeb590@gmail.com.');
+                    showNotification('Sorry, something went wrong while sending your message. Please try again in a moment or email me directly at oneeb590@gmail.com.', 'error');
                     return;
                 }
 
-                alert('Thank you for reaching out! Your message has been sent successfully.');
+                // Show success notification instead of alert
+                showNotification('Thank you for reaching out! Your message has been sent successfully.', 'success');
                 contactForm.reset();
+                
+                // Clear any validation errors
+                contactForm.querySelectorAll('.error').forEach(field => {
+                    field.classList.remove('error');
+                });
+                contactForm.querySelectorAll('.error-message').forEach(msg => {
+                    msg.remove();
+                });
+
             } catch (err) {
                 console.error('Contact form error:', err);
-                alert('Unexpected error sending your message. Please try again, or email me directly at oneeb590@gmail.com.');
+                showNotification('Unexpected error sending your message. Please try again, or email me directly at oneeb590@gmail.com.', 'error');
+            } finally {
+                // Re-enable submit button
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Send Message';
+                }
             }
         });
+    }
+
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fa fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        // Add to page
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+
+        // Animate in
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
     }
 });
