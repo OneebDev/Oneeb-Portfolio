@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             if (!payload.name || !payload.email || !payload.subject || !payload.message) {
-                alert('Please fill in all fields.');
+                alert('Please fill in all required fields before sending your message.');
                 return;
             }
 
@@ -175,15 +175,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await res.json().catch(() => ({}));
 
                 if (!res.ok || !data.success) {
-                    alert('Sorry, your message could not be sent. Please try again later.');
+                    alert('Sorry, something went wrong while sending your message. Please try again in a moment or email me directly at oneeb590@gmail.com.');
                     return;
                 }
 
-                alert('Thank you! Your message has been sent.');
+                alert('Thank you for reaching out! Your message has been sent successfully.');
                 contactForm.reset();
             } catch (err) {
                 console.error('Contact form error:', err);
-                alert('Unexpected error sending your message. Please try again later.');
+                alert('Unexpected error sending your message. Please try again, or email me directly at oneeb590@gmail.com.');
             }
         });
     }

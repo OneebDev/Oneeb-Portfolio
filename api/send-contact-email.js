@@ -19,13 +19,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'All fields are required.' });
     }
 
+    const safeMessage = String(message || '').replace(/\n/g, '<br>');
+    const emailSubject = subject
+      ? `New message from ${name} – ${subject}`
+      : `New message from ${name} via portfolio`;
+
     const html = `
-      <h2>New portfolio contact message</h2>
+      <p>You just received a new message from your portfolio contact form.</p>
+      <hr />
       <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Subject:</strong> ${subject}</p>
+      <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+      ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
       <p><strong>Message:</strong></p>
-      <p>${String(message).replace(/\n/g, '<br>')}</p>
+      <p>${safeMessage}</p>
+      <hr />
+      <p style="font-size:12px;color:#6b7280;">This email was sent from your portfolio site contact form.</p>
     `;
 
     const response = await fetch('https://api.resend.com/emails', {
@@ -35,10 +43,10 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Portfolio Contact <onboarding@resend.dev>',
+        from: 'Oneeb Portfolio <onboarding@resend.dev>',
         to: ['oneeb590@gmail.com'],
         reply_to: email,
-        subject: subject || 'New portfolio contact message',
+        subject: emailSubject,
         html,
       }),
     });
