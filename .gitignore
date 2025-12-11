@@ -1,0 +1,7 @@
+# Never commit secrets
+.env
+
+# Optional: other common ignores
+node_modules/
+.DS_Store
+dist/
